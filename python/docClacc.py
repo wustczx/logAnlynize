@@ -34,7 +34,7 @@ def rm_tokens(words , stopWordCNPath='', stopWordENGPath=''):
             words_list.pop(i)
     return words_list
 
-files=["11111, 1,世界真的大，我想去看看","coremail很厉害了other been"]
+files=["11111, 1,世界真的大，我想去看看","很厉害了other been"]
 words=[]
 for file in files:
     words+=(convert_doc2word(file,False))
