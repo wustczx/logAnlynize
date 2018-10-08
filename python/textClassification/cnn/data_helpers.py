@@ -7,9 +7,10 @@ from pypinyin import pinyin
 import itertools
 from collections import Counter
 
-
-# 读取停词表
 def stop_words():
+    """
+    读取停用词表
+    """
     stop_words_file = open('../static/stop_words_ch.txt', 'r', encoding='gbk')
     stopwords_list = []
     for line in stop_words_file.readlines():
@@ -17,7 +18,9 @@ def stop_words():
     return stopwords_list
 
 def jieba_fenci(raw, stopwords_list):
-    # 使用结巴分词把文件进行切分
+    """
+    使用结巴分词把文件进行切分
+    """
     text = ""
     word_list = list(jieba.cut(raw, cut_all=False))
     for word in word_list:
@@ -68,6 +71,9 @@ def load_data_and_labels(positive_data_file, negative_data_file):
 
 
 def load_AI100_data_and_labels(data_path, use_pinyin=False):
+    """
+    用于多分类
+    """
     x_text = []
     y = []
     stopwords_list = stop_words()
@@ -85,10 +91,31 @@ def load_AI100_data_and_labels(data_path, use_pinyin=False):
     print ("data load finished")
     return [x_text, np.array(y)]
 
+def load_data(data_path):
+    """
+    加载数据
+    """
+    x_text = []
+    stopWordsList = stop_words()
+    with open(data_path, 'r') as f:
+        for line in f:
+            text = jieba_fenci(line, stopWordsList)
+            x_text.append(text)
+    print("data load finished:",data_path.split('/')[-1])
+    return x_text
+
+def load_labels(length, classficationNum, onehotValue):
+    """
+    创建标签onehot码
+    """
+    labels= np.arange(length * classficationNum).reshape(length, classficationNum)
+    for i in range(0, length):
+        labels[i]=onehotValue
+    return labels
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
-    Generates a batch iterator for a dataset.
+    为数据集生成一个批量iterator
     """
     data = np.array(data)
     data_size = len(data)
