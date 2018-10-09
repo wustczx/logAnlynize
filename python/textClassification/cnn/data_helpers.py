@@ -24,7 +24,7 @@ def jieba_fenci(raw, stopwords_list):
     text = ""
     word_list = list(jieba.cut(raw, cut_all=False))
     for word in word_list:
-        if word not in stopwords_list and word != '\r\n':
+        if word not in stopwords_list and word != '\r\n' and word != ' ':
             text += word
             text += ' '
     return text
@@ -97,12 +97,25 @@ def load_data(data_path):
     """
     x_text = []
     stopWordsList = stop_words()
-    with open(data_path, 'r') as f:
-        for line in f:
-            text = jieba_fenci(line, stopWordsList)
-            x_text.append(text)
+    #with open(data_path, 'r', encoding='gbk') as f:
+     #   for line in f:
+      #      text = jieba_fenci(line, stopWordsList)
+       #     x_text.append(text)
+    lines = []
+    for line in open(data_path, 'rb'):
+        try:
+            line = line.decode('gbk')
+            lines.append(line)
+        except UnicodeDecodeError:
+            pass
+    print("read done...")
+    out = open(data_path + ".res", "w")
+    for line in lines:
+        text = jieba_fenci(line, stopWordsList)
+        out.write(text + "\n")
+        x_text.append(text)
     print("data load finished:",data_path.split('/')[-1])
-    return x_text
+    return np.array(x_text)
 
 def load_labels(length, classficationNum, onehotValue):
     """
@@ -121,7 +134,6 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     data_size = len(data)
     num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
     for epoch in range(num_epochs):
-        # Shuffle the data at each epoch
         if shuffle:
             shuffle_indices = np.random.permutation(np.arange(data_size))
             shuffled_data = data[shuffle_indices]
