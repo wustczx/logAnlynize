@@ -112,9 +112,16 @@ def load_data(data_path):
     out = open(data_path + ".res", "w")
     for line in lines:
         text = jieba_fenci(line, stopWordsList)
-        out.write(text + "\n")
+        out.write(text )
         x_text.append(text)
+    close(out)
     print("data load finished:",data_path.split('/')[-1])
+    return np.array(x_text)
+
+def load(data_path):
+    x_text = []
+    for line in open(data_path, "r"):
+        x_text.append(line)
     return np.array(x_text)
 
 def load_labels(length, classficationNum, onehotValue):

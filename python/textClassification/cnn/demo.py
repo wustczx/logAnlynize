@@ -1,10 +1,12 @@
 import tensorflow as tf
 import numpy as np
 import os
+import time
+import datetime
 import data_helpers
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 tf.flags.DEFINE_string("positive_data_file","","Positive Data Source")
 tf.flags.DEFINE_string("negative_data_file","","Negative Data Source")
@@ -23,21 +25,26 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-tf.flags.DEFINE_string("summary_dir","/tmp/wust","summary dir path")
+tf.flags.DEFINE_string("summary_dir","/tmp/czx","summary dir path")
 
 FLAGS = tf.flags.FLAGS
 FLAGS.flag_values_dict()
 
 print("Loading Data...")
-negative_xtexts = data_helpers.load_data("../../../data/sample_train.log")
-positive_xtexts = data_helpers.load_data("../../../data/sender_train.log")
+#negative_xtexts = data_helpers.load_data("../../../data/sample_train.log")
+#positive_xtexts = data_helpers.load_data("../../../data/sender_train.log")
+positive_xtexts = data_helpers.load("../../../data/sender_test.res")
+negative_xtexts = data_helpers.load("../../../data/sample_test.res")
 positive_ylabels = data_helpers.load_labels(positive_xtexts.shape[0], 2,[0,1])
 negative_ylabels = data_helpers.load_labels(negative_xtexts.shape[0], 2,[1,0])
 
 print("pos:",positive_xtexts.shape)
 print("neg:",negative_xtexts.shape)
-xtexts = np.vstack((positive_xtexts, negative_xtexts))
-ylabels = np.vstatck((positive_ylabels, negative_ylabels))
+print(type(positive_xtexts))
+#xtexts = np.vstack((positive_xtexts, negative_xtexts))
+#ylabels = np.vstatck((positive_ylabels, negative_ylabels))
+xtexts = np.concatenate((positive_xtexts,negative_xtexts),axis=0)
+ylabels = np.concatenate((positive_ylabels, negative_ylabels),axis=0)
 
 
 max_sentence_length = max([ len(x.split(" ")) for x in xtexts])
@@ -45,7 +52,7 @@ vocab_processor = learn.preprocessing.VocabularyProcessor( max_sentence_length)
 x = np.array(list(vocab_processor.fit_transform(xtexts)))
 
 np.random.seed(10)
-shuffle_indices = np.random.permutation(np.arange(len(y)))
+shuffle_indices = np.random.permutation(np.arange(len(ylabels)))
 x_shuffled = x[shuffle_indices]
 y_shuffled = ylabels[shuffle_indices]
 
@@ -55,12 +62,12 @@ print("Train/Test Split: {:d}/{:d}".format(len(x_train), len(x_test)))
 
 
 with tf.Graph().as_default():
-     session_conf = tf.ConfigProto(
+    session_conf = tf.ConfigProto(
             allow_soft_placement = FLAGS.allow_soft_placement,
             log_device_placement = FLAGS.log_device_placement)
-     sess = tf.Session(config = session_conf)
-     with sess.as_default():
-         cnn = TextCNN(
+    sess = tf.Session(config = session_conf)
+    with sess.as_default():
+        cnn = TextCNN(
                   sequence_length=x_train.shape[1],
             	  num_classes=y_train.shape[1],
             	  vocab_size=len(vocab_processor.vocabulary_),
@@ -68,7 +75,8 @@ with tf.Graph().as_default():
             	  filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                   num_filters=FLAGS.num_filters,
                   l2_reg_lambda=FLAGS.l2_reg_lambda)
-        global_step = tf.Variable(0, name = "global_step", trainable = False)
+
+        global_step = tf.Variable(0, name="global_step", trainable=False)
         optimizer = tf.train.AdamOptimizer(1e-3)
         grads_and_vars = optimizer.compute_gradients(cnn.loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
@@ -123,7 +131,7 @@ with tf.Graph().as_default():
             Evaluates model on a test set
             """
             feed_dict = { cnn.input_x: x_batch,cnn.input_y: y_batch,cnn.dropout_keep_prob: 1.0 }
-            step, summaries, loss, accuracy = sess.run([global_step, dev_summary_op, cnn.loss, cnn.accuracy],feed_dict)
+            step, summaries, loss, accuracy = sess.run([global_step, test_summary_op, cnn.loss, cnn.accuracy],feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             if writer:
@@ -136,7 +144,7 @@ with tf.Graph().as_default():
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                test_step(x_dev, y_dev, writer=dev_summary_writer)
+                test_step(x_test, y_test, writer=test_summary_writer)
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}\n".format(path))
