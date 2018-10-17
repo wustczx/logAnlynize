@@ -24,7 +24,7 @@ public class KafkaDemo {
 		System.out.println("Begin...");
 		Properties properties = new Properties();
 		properties.put(StreamsConfig.APPLICATION_ID_CONFIG, "streams-wordcount");
-		properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "182.61.26.39:9092");
+		properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
 		properties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 		properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
 		properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,Serdes.String().getClass().getName());
